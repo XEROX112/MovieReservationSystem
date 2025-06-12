@@ -22,13 +22,7 @@ public class Movie {
     @CollectionTable(name = "movie_cast", joinColumns = @JoinColumn(name = "movie_id"))
     private List<professionalIdentity> cast;
 
-    @ElementCollection
-    @CollectionTable(name = "movie_crew", joinColumns = @JoinColumn(name = "movie_id"))
-    private List<professionalIdentity> crew;
 
-    @ElementCollection
-    @CollectionTable(name = "movie_studio", joinColumns = @JoinColumn(name = "movie_id"))
-    private List<String> studio;
 
     @ElementCollection
     @CollectionTable(name = "movie_genre", joinColumns = @JoinColumn(name = "movie_id"))
