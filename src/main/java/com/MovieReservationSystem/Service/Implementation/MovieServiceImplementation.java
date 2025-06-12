@@ -36,7 +36,8 @@ public class MovieServiceImplementation implements MovieService {
 
     @Override
     public void deleteMovie(String title) {
-            movieRepository.deleteById(movieId);
+        Movie movie = movieRepository.findByTitle(title);
+        movieRepository.deleteById(movie.getId());
     }
 
     @Override

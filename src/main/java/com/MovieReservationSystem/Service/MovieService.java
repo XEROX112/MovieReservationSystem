@@ -8,7 +8,7 @@ public interface MovieService {
     public Movie addMovie(Movie movie);
     public Movie getMovieByName(String name);
     public Movie updateMovie(Movie movie);
-    public void deleteMovie(Long movieId);
+    public void deleteMovie(String title);
     public List<Movie> getMoviesByRegion(String region);
 
 }

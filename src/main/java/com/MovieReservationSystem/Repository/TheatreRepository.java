@@ -13,12 +13,14 @@ import java.util.Optional;
 @Repository
 public interface TheatreRepository extends JpaRepository<Theatre, Long> {
     boolean existsByTheaterName(String theatreName);
+
     List<Theatre> findByTheaterNameContainingIgnoreCase(String name);
+
     @Query("SELECT DISTINCT t FROM Theatre t " +
             "JOIN Show s ON t.id = s.theater.id " +
             "WHERE s.movie.title = :movieTitle AND t.region = :region")
     List<Theatre> findTheatresByMovieAndRegion(@Param("movieTitle") String movieTitle,
                                                @Param("region") String region);
 
-    Optional<Theatre> findByTheaterName(@NotBlank(message = "Theatre name cannot be empty") String theatreName);
+    Optional<Theatre> findByTheaterNameAndAddressAndRegion(String theaterName, String address, String region);
 }

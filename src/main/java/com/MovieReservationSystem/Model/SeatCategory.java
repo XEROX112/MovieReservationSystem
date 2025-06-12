@@ -17,7 +17,7 @@ public class SeatCategory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String categoryName; // Example: Diamond, Gold, Silver
+    private String categoryName;
     private int price;
 
     @ManyToOne

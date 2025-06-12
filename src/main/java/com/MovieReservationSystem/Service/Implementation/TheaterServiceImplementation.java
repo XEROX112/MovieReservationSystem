@@ -18,14 +18,14 @@ import java.util.Optional;
 public class TheaterServiceImplementation implements TheaterService {
     private final TheatreRepository theatreRepository;
 
-    public TheaterServiceImplementation(TheatreRepository theatreRepository ){
+    public TheaterServiceImplementation(TheatreRepository theatreRepository) {
         this.theatreRepository = theatreRepository;
     }
 
     @Override
-    public Theatre addTheater(AddTheatre addTheatre) {
+    public Theatre addTheater(Theatre addTheatre) {
         // ✅ Check if the theater already exists
-        if (theatreRepository.existsByTheaterName(addTheatre.getTheaterName())) {
+        if (theatreRepository.findByTheaterNameAndAddressAndRegion(addTheatre.getTheaterName(), addTheatre.getAddress(), addTheatre.getRegion()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Theater already exists");
         }
 
@@ -36,7 +36,6 @@ public class TheaterServiceImplementation implements TheaterService {
 
         return theatreRepository.save(newTheatre);
     }
-
 
 
     @Override
@@ -60,11 +59,11 @@ public class TheaterServiceImplementation implements TheaterService {
     }
 
     @Override
-    public Theatre updateTheatre(Long id, AddTheatre updatedTheatre) {
+    public Theatre updateTheatre(Long id, Theatre updatedTheatre) {
         Theatre theatre = theatreRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Theatre not found"));
 
-        Optional<Theatre> existingTheatre = theatreRepository.findByTheaterName(updatedTheatre.getTheaterName());
+        Optional<Theatre> existingTheatre = theatreRepository.findByTheaterNameAndAddressAndRegion(updatedTheatre.getTheaterName(), updatedTheatre.getAddress(), updatedTheatre.getRegion());
         if (existingTheatre.isPresent() && !existingTheatre.get().getId().equals(id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Theatre name already exists");
         }
@@ -81,7 +80,6 @@ public class TheaterServiceImplementation implements TheaterService {
 
         return theatreRepository.save(theatre);
     }
-
 
 
     @Override

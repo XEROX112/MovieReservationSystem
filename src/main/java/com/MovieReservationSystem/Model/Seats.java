@@ -14,7 +14,7 @@ public class Seats {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String seatNumber; // Example: "A1", "A2", "B5"
+    private String seatNumber;
     private Boolean isAvailable = true;
 
     @ManyToOne

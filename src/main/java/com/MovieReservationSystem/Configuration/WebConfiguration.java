@@ -34,8 +34,8 @@ public class WebConfiguration {
         http.sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasAnyRole( "ADMIN")
-                        .requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/admin/**").hasAnyRole( "ADMIN")
+                        .requestMatchers("/profile/**","/theater/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore( new JwtTokenValidator(), BasicAuthenticationFilter.class)
@@ -50,11 +50,11 @@ public class WebConfiguration {
             @Override
             public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOrigins(Arrays.asList("https://localhost:8080", "https://moviesreservationsystem.com"));
-                configuration.setAllowedMethods(Arrays.asList("*"));
+                configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "https://moviesreservationsystem.com"));
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 configuration.setAllowedHeaders(Arrays.asList("*"));
-                configuration.setAllowCredentials(true);
                 configuration.setExposedHeaders(Arrays.asList("Authorization"));
+                configuration.setAllowCredentials(true);
                 configuration.setMaxAge(3600L);
                 return configuration;
             }

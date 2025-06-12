@@ -16,14 +16,15 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class TheatreController {
     private final TheaterService theaterService;
+
     public TheatreController(TheaterService theaterService) {
         this.theaterService = theaterService;
     }
 
     @PostMapping("/add-theatre")
-    public ResponseEntity<Theatre> addTheatre(@Valid  @RequestBody AddTheatre addTheatre){
-        Theatre theatre=theaterService.addTheater(addTheatre);
-        return ResponseEntity.status(HttpStatus.CREATED).body(theatre);
+    public ResponseEntity<String> addTheatre(@Valid @RequestBody Theatre addTheatre) {
+        Theatre theatre = theaterService.addTheater(addTheatre);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Theatre Added");
     }
 
 
@@ -40,7 +41,7 @@ public class TheatreController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<Theatre> updateTheatre(@PathVariable Long id, @Valid @RequestBody AddTheatre updatedTheatre) {
+    public ResponseEntity<Theatre> updateTheatre(@PathVariable Long id, @Valid @RequestBody Theatre updatedTheatre) {
         Theatre theatre = theaterService.updateTheatre(id, updatedTheatre);
         return ResponseEntity.ok(theatre);
     }

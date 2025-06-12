@@ -22,9 +22,16 @@ public class JwtProvider {
         String  roles=populateAuthorities(authorities);
         String token= Jwts.builder()
                 .setIssuedAt(new Date())
-                .setExpiration((new Date(new Date().getTime()+864000)))
+                .setExpiration((new Date(new Date().getTime()+86400000)))
                 .claim("email", authentication.getName())
-                .claim("authorities",roles)
+                .claim("authorities", authorities.stream()
+                        .map(a -> {
+                            String auth = a.getAuthority();
+                            return auth.startsWith("ROLE_") ? auth : "ROLE_" + auth;
+                        })
+                        .toList()
+                )
+
                 .signWith(key)
                 .compact();
         return token;

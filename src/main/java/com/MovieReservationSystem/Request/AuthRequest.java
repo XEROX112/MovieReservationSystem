@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthRequest {
     @NotBlank
-    private String username;
+    private String fullName;
 
     @NotBlank
     private String email;
@@ -21,11 +21,6 @@ public class AuthRequest {
 
     @NotBlank
     private String confirmPassword;
-
-    @NotBlank
-    @Size(min = 10, max = 10, message = "Phone number must be exactly 10 digits")
-    @Pattern(regexp = "\\d{10}", message = "Phone number must contain only digits")
-    private String phone;
 
     @NotBlank
     private String role;

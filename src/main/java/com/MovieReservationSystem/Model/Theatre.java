@@ -17,6 +17,7 @@ public class Theatre {
     private Long id;
 
     private  String theaterName;
+    private String address;
     private  String region;
 
     @OneToMany(mappedBy = "theater", cascade = CascadeType.ALL,orphanRemoval = true)
