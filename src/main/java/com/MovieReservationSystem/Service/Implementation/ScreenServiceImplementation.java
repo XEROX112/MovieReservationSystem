@@ -1,70 +1,87 @@
 package com.MovieReservationSystem.Service.Implementation;
 
-import com.MovieReservationSystem.DTO.AddScreen;
-import com.MovieReservationSystem.Model.Screen;
-import com.MovieReservationSystem.Model.Theatre;
-import com.MovieReservationSystem.Repository.ScreenRepository;
-import com.MovieReservationSystem.Repository.TheatreRepository;
+import com.MovieReservationSystem.DTO.RowRequest;
+import com.MovieReservationSystem.DTO.ScreenRequest;
+import com.MovieReservationSystem.DTO.SeatCategoryRequest;
+import com.MovieReservationSystem.DTO.SeatRequest;
+import com.MovieReservationSystem.Model.*;
+import com.MovieReservationSystem.Repository.*;
 import com.MovieReservationSystem.Service.ScreenService;
 import com.MovieReservationSystem.Service.SeatCategoryService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Vector;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ScreenServiceImplementation implements ScreenService {
     private final TheatreRepository theatreRepository;
     private final ScreenRepository screenRepository;
-    private final SeatCategoryService seatCategoryService;
-    public ScreenServiceImplementation(TheatreRepository theatreRepository, ScreenRepository screenRepository, SeatCategoryService seatCategoryService) {
+    private final SeatCategoryRepository seatCategoryRepository;
+    private final SeatRepository seatRepository;
+    private final SeatRowRepository seatRowRepository;
+
+    public ScreenServiceImplementation(TheatreRepository theatreRepository, ScreenRepository screenRepository, SeatCategoryRepository seatCategoryRepository, SeatRepository seatRepository, SeatRowRepository seatRowRepository) {
         this.theatreRepository = theatreRepository;
         this.screenRepository = screenRepository;
-        this.seatCategoryService = seatCategoryService;
+        this.seatCategoryRepository = seatCategoryRepository;
+        this.seatRepository = seatRepository;
+        this.seatRowRepository = seatRowRepository;
     }
 
     @Override
     @Transactional
-    public Screen addScreenInTheatre(Long theatreId, AddScreen addScreen) {
-        Optional<Theatre> theatre = theatreRepository.findById(theatreId);
-        if(theatre.isEmpty()) {
-            throw new IllegalArgumentException("There is no such theatre");
-        }
-        Screen screen = new Screen();
-        screen.setScreenName(addScreen.getScreenName());
-        screen.setTheater(theatre.get());
+    public List<Screen> addScreenInTheatre(Long theatreId, List<ScreenRequest> screenRequests) {
+        Theatre theatre = theatreRepository.findById(theatreId)
+                .orElseThrow(() -> new IllegalArgumentException("There is no such theatre"));
 
-        screen = screenRepository.save(screen);
+        List<Screen> savedScreens = new ArrayList<>();
 
+        for (ScreenRequest screenReq : screenRequests) {
+            Screen screen = new Screen();
+            screen.setScreenName(screenReq.getScreenName());
+            screen.setTheater(theatre);
 
-        if (addScreen.getCategoryPrices() != null && addScreen.getSeatCategoryConfiguration() != null) {
-            List<Integer> categoryPrices = addScreen.getCategoryPrices();
-            List<String> seatCategories = new ArrayList<>(addScreen.getSeatCategoryConfiguration().keySet());
-            int previousCategoryRow=0;
-            if (categoryPrices.size() == seatCategories.size()) {
-                for (int i = 0; i < categoryPrices.size(); i++) {
-                    Integer price = categoryPrices.get(i);
-                    String category = seatCategories.get(i);
+            List<SeatCategory> categories = new ArrayList<>();
+            for (SeatCategoryRequest categoryReq : screenReq.getSeatCategories()) {
+                SeatCategory category = new SeatCategory();
+                category.setCategoryName(categoryReq.getCategoryName());
+                category.setPrice((int) categoryReq.getPrice());
+                category.setScreen(screen); // link category to screen
 
-                    Vector<Integer> seats = addScreen.getSeatCategoryConfiguration().get(category);
+                List<SeatRow> rows = new ArrayList<>();
+                for (RowRequest rowReq : categoryReq.getSeatRows()) {
+                    SeatRow row = new SeatRow();
+                    row.setRowName(rowReq.getRowName());
+                    row.setColumnCount(rowReq.getColumnCount());
+                    row.setSeatCategory(category); // link row to category
 
-                    if (price != null && seats != null && category != null) {
-                       seatCategoryService.addSeatCategory(screen.getId(),category,price,seats,previousCategoryRow);
+                    List<Seats> seats = new ArrayList<>();
+                    for (SeatRequest seatReq : rowReq.getSeats()) {
+                        Seats seat = new Seats();
+                        seat.setSeatNumber(seatReq.getSeatNumber());
+                        seat.setIsAvailable(true);
+                        seat.setSeatRow(row); // link seat to row
+                        seats.add(seat);
                     }
-                    previousCategoryRow+=seats.size();
+
+                    row.setSeats(seats); // set seat list in row
+                    rows.add(row);
                 }
-            } else {
-                throw new IllegalArgumentException("Mismatch in sizes of categoryPrices and seatCategoryConfiguration");
+
+                category.setSeatRows(rows); // set row list in category
+                categories.add(category);
             }
+
+            screen.setSeatCategories(categories); // set categories in screen
+            screenRepository.save(screen); // save entire screen -> cascades everything
+            savedScreens.add(screen);
         }
 
-        theatre.get().getScreens().add(screen);
-        theatreRepository.save(theatre.get());
-        return screenRepository.save(screen);
+        return savedScreens;
     }
+
 
     @Override
     public List<Theatre> getAllTheatre() {
@@ -74,7 +91,7 @@ public class ScreenServiceImplementation implements ScreenService {
     @Override
     public Screen getScreenById(Long screenId) {
         Optional<Screen> screen = screenRepository.findById(screenId);
-        if(screen.isEmpty()) {
+        if (screen.isEmpty()) {
             throw new IllegalArgumentException("There is no such Screen in Theatre");
         }
         return screen.get();
@@ -84,4 +101,35 @@ public class ScreenServiceImplementation implements ScreenService {
     public void deleteScreenById(Long screenId) {
         screenRepository.deleteById(screenId);
     }
+
+    @Override
+    @Transactional
+    public List<Screen> updateScreens(Long theaterId, List<ScreenRequest> screenRequests) {
+        Theatre theater = theatreRepository.findById(theaterId)
+                .orElseThrow(() -> new RuntimeException("Theater not found"));
+
+        List<Screen> existingScreens = screenRepository.findByTheaterId(theaterId);
+        Map<String, Screen> screenMap = existingScreens.stream()
+                .collect(Collectors.toMap(Screen::getScreenName, screen -> screen));
+
+        for (ScreenRequest screenReq : screenRequests) {
+            Screen screen = screenMap.get(screenReq.getScreenName());
+            if (screen == null) continue;
+
+            Map<String, SeatCategory> categoryMap = screen.getSeatCategories().stream()
+                    .collect(Collectors.toMap(SeatCategory::getCategoryName, category -> category));
+
+            for (SeatCategoryRequest catReq : screenReq.getSeatCategories()) {
+                SeatCategory category = categoryMap.get(catReq.getCategoryName());
+                if (category == null) continue;
+
+                category.setPrice((int) catReq.getPrice());
+            }
+        }
+
+        screenRepository.saveAll(existingScreens);
+        return existingScreens;
+    }
+
+
 }

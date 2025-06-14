@@ -1,5 +1,6 @@
 package com.MovieReservationSystem.Service.Implementation;
 
+import com.MovieReservationSystem.DTO.SeatRequest;
 import com.MovieReservationSystem.Model.SeatRow;
 import com.MovieReservationSystem.Model.Seats;
 import com.MovieReservationSystem.Repository.SeatRepository;
@@ -14,35 +15,23 @@ import java.util.List;
 
 @Service
 public class SeatServiceImplementation implements SeatService {
-    private final SeatRepository seatRepository;
+
     private final SeatRowRepository seatRowRepository;
-    public SeatServiceImplementation(SeatRepository seatRepository, SeatRowRepository seatRowRepository) {
-        this.seatRepository = seatRepository;
+    private final SeatRepository seatRepository;
+
+    public SeatServiceImplementation(SeatRowRepository seatRowRepository, SeatRepository seatRepository) {
         this.seatRowRepository = seatRowRepository;
+        this.seatRepository = seatRepository;
     }
 
     @Override
     @Transactional
-    public void createSeatsInRow(SeatRow seatRow, int columns) {
-        List<Seats> seats = new ArrayList<>();
-
-        for (int i = 1; i <= columns; i++) {
-            Seats seat = new Seats();
-            seat.setSeatNumber(seatRow.getRowName() + i); // Example: A1, A2...
-            seat.setSeatRow(seatRow);
-            seat.setIsAvailable(true);
-            seats.add(seat);
-        }
-
-        // ✅ Ensure seatRow.getSeats() is initialized before adding
-        if (seatRow.getSeats() == null) {
-            seatRow.setSeats(new ArrayList<>());
-        }
-
-        seatRow.getSeats().addAll(seats);
-
-        // ✅ Only save seatRow (JPA will automatically save seats)
-        seatRowRepository.save(seatRow);
+    public void createSeatsInRow(SeatRequest req, SeatRow seatRow) {
+        Seats seat = new Seats();
+        seat.setSeatNumber(req.getSeatNumber());
+        seat.setSeatRow(seatRow);
+        seat.setIsAvailable(true);
+        seatRepository.save(seat);
     }
 
 

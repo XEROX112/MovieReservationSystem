@@ -1,8 +1,9 @@
 package com.MovieReservationSystem.Service.Implementation;
 
-import com.MovieReservationSystem.DTO.AddTheatre;
+import com.MovieReservationSystem.DTO.AddTheatreRequest;
 import com.MovieReservationSystem.Model.Theatre;
 import com.MovieReservationSystem.Repository.TheatreRepository;
+import com.MovieReservationSystem.Service.ScreenService;
 import com.MovieReservationSystem.Service.TheaterService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,13 +18,15 @@ import java.util.Optional;
 @PreAuthorize("hasRole('ADMIN')")
 public class TheaterServiceImplementation implements TheaterService {
     private final TheatreRepository theatreRepository;
+    private final ScreenService screenService;
 
-    public TheaterServiceImplementation(TheatreRepository theatreRepository) {
+    public TheaterServiceImplementation(TheatreRepository theatreRepository, ScreenService screenService) {
         this.theatreRepository = theatreRepository;
+        this.screenService = screenService;
     }
 
     @Override
-    public Theatre addTheater(Theatre addTheatre) {
+    public Theatre addTheater(AddTheatreRequest addTheatre) {
         // ✅ Check if the theater already exists
         if (theatreRepository.findByTheaterNameAndAddressAndRegion(addTheatre.getTheaterName(), addTheatre.getAddress(), addTheatre.getRegion()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Theater already exists");
@@ -33,8 +36,11 @@ public class TheaterServiceImplementation implements TheaterService {
         Theatre newTheatre = new Theatre();
         newTheatre.setTheaterName(addTheatre.getTheaterName());
         newTheatre.setRegion(addTheatre.getRegion());
-
-        return theatreRepository.save(newTheatre);
+        newTheatre.setAddress(addTheatre.getAddress());
+        theatreRepository.save(newTheatre);
+        long id = newTheatre.getId();
+        screenService.addScreenInTheatre(id, addTheatre.getScreens());
+        return newTheatre;
     }
 
 
@@ -59,25 +65,19 @@ public class TheaterServiceImplementation implements TheaterService {
     }
 
     @Override
-    public Theatre updateTheatre(Long id, Theatre updatedTheatre) {
+    public Theatre updateTheatre(Long id, AddTheatreRequest updatedTheatre) {
         Theatre theatre = theatreRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Theatre not found"));
 
-        Optional<Theatre> existingTheatre = theatreRepository.findByTheaterNameAndAddressAndRegion(updatedTheatre.getTheaterName(), updatedTheatre.getAddress(), updatedTheatre.getRegion());
-        if (existingTheatre.isPresent() && !existingTheatre.get().getId().equals(id)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Theatre name already exists");
-        }
-
         theatre.setTheaterName(updatedTheatre.getTheaterName());
 
-        // Ensure region is not null or empty
         if (updatedTheatre.getRegion() == null || updatedTheatre.getRegion().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Region cannot be empty");
         }
 
-        // Normalize region string to avoid inconsistencies
-        theatre.setRegion(updatedTheatre.getRegion().trim().toLowerCase());
-
+        theatre.setRegion(updatedTheatre.getRegion());
+        theatre.setAddress(updatedTheatre.getAddress());
+        screenService.updateScreens(id, updatedTheatre.getScreens());
         return theatreRepository.save(theatre);
     }
 

@@ -1,5 +1,6 @@
 package com.MovieReservationSystem.Model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,5 +20,6 @@ public class Seats {
 
     @ManyToOne
     @JoinColumn(name = "seat_row_id", nullable = false)
+    @JsonBackReference
     private SeatRow seatRow;
 }

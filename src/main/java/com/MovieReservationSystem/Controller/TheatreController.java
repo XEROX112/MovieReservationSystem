@@ -1,13 +1,16 @@
 package com.MovieReservationSystem.Controller;
 
-import com.MovieReservationSystem.DTO.AddTheatre;
+import com.MovieReservationSystem.DTO.AddTheatreRequest;
+import com.MovieReservationSystem.Mapper.TheatreMapper;
 import com.MovieReservationSystem.Model.Theatre;
+import com.MovieReservationSystem.Response.TheatreResponse;
 import com.MovieReservationSystem.Service.TheaterService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -22,9 +25,16 @@ public class TheatreController {
     }
 
     @PostMapping("/add-theatre")
-    public ResponseEntity<String> addTheatre(@Valid @RequestBody Theatre addTheatre) {
+    public ResponseEntity<Theatre> addTheatre(@Valid @RequestBody AddTheatreRequest addTheatre) {
         Theatre theatre = theaterService.addTheater(addTheatre);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Theatre Added");
+        return ResponseEntity.status(HttpStatus.CREATED).body(theatre);
+    }
+
+    @GetMapping("/theatres/{id}")
+    public ResponseEntity<TheatreResponse> getTheatreById(@PathVariable Long id) {
+        Theatre theatre = theaterService.getTheaterById(id);
+        TheatreResponse response = TheatreMapper.toDto(theatre);
+        return ResponseEntity.ok(response);
     }
 
 
@@ -40,8 +50,8 @@ public class TheatreController {
     }
 
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Theatre> updateTheatre(@PathVariable Long id, @Valid @RequestBody Theatre updatedTheatre) {
+    @PutMapping("/theatres/{id}")
+    public ResponseEntity<Theatre> updateTheatre(@Valid @RequestBody AddTheatreRequest updatedTheatre, @PathVariable Long id) {
         Theatre theatre = theaterService.updateTheatre(id, updatedTheatre);
         return ResponseEntity.ok(theatre);
     }

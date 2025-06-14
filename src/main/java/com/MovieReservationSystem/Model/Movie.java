@@ -22,14 +22,16 @@ public class Movie {
     @CollectionTable(name = "movie_cast", joinColumns = @JoinColumn(name = "movie_id"))
     private List<professionalIdentity> cast;
 
-
+    @ManyToOne
+    @JoinColumn(name = "theatre_id")
+    private Theatre theatre;
 
     @ElementCollection
     @CollectionTable(name = "movie_genre", joinColumns = @JoinColumn(name = "movie_id"))
     private List<String> genre;
 
     private String description;
-
+    private String about;
     @ElementCollection
     @CollectionTable(name = "movie_language", joinColumns = @JoinColumn(name = "movie_id"))
     private List<String> language;
@@ -40,15 +42,10 @@ public class Movie {
 
     private Certification certification;
 
-    private Float rating;
-
-    @ElementCollection
-    @CollectionTable(name = "movie_reviews", joinColumns = @JoinColumn(name = "movie_id"))
-    private List<String> movieReviews;
-
     private String poster;
-
-    private Format format;
+    @ElementCollection
+    @CollectionTable(name = "movie_format", joinColumns = @JoinColumn(name = "movie_id"))
+    private List<String> Format;
 
 
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL)

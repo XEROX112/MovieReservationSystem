@@ -1,12 +1,12 @@
 package com.MovieReservationSystem.Service;
 
-import com.MovieReservationSystem.DTO.AddTheatre;
+import com.MovieReservationSystem.DTO.AddTheatreRequest;
 import com.MovieReservationSystem.Model.Theatre;
 
 import java.util.List;
 
 public interface TheaterService {
-    Theatre addTheater(Theatre theatre);
+    Theatre addTheater(AddTheatreRequest theatre);
 
     List<Theatre> getAllTheaters();
 
@@ -14,7 +14,7 @@ public interface TheaterService {
 
     boolean deleteTheatre(Long id);
 
-    Theatre updateTheatre(Long id, Theatre updatedTheatre);
+    Theatre updateTheatre(Long id, AddTheatreRequest updatedTheatre);
 
     long countTheatres();
 
