@@ -2,6 +2,7 @@ services:
   - type: web
     name: movie-reservation-backend
     env: static
-    buildCommand: ./mvnw clean package
+    buildCommand: mvn clean package
     startCommand: java -jar target/MovieReservationSystem-0.0.1-SNAPSHOT.jar
     branch: main
+
