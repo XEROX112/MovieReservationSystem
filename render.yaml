@@ -1,8 +1,9 @@
 services:
   - type: web
     name: movie-reservation-backend
-    env: java
+    runtime: java
     buildCommand: mvn clean package
     startCommand: java -jar target/MovieReservationSystem-0.0.1-SNAPSHOT.jar
     plan: free
     branch: main
+
