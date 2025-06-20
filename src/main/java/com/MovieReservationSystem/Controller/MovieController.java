@@ -1,16 +1,23 @@
 package com.MovieReservationSystem.Controller;
 
 import com.MovieReservationSystem.DTO.MovieDTO;
+import com.MovieReservationSystem.Mapper.MovieMapper;
 import com.MovieReservationSystem.Model.Movie;
+import com.MovieReservationSystem.Response.MovieDetailsDto;
+import com.MovieReservationSystem.Response.MovieResponse;
+import com.MovieReservationSystem.Response.MovieResponseDto;
 import com.MovieReservationSystem.Service.MovieService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/admin/movies")
+@RequestMapping("/movies")
 public class MovieController {
     private final MovieService movieService;
 
@@ -19,14 +26,18 @@ public class MovieController {
     }
 
     @GetMapping("/region/{region}")
-    public ResponseEntity<List<Movie>> getMoviesByRegion(@PathVariable String region) {
+    public ResponseEntity<List<MovieResponseDto>> getMoviesByRegion(@PathVariable String region) {
+        System.out.println("hi");
         List<Movie> movies = movieService.getMoviesByRegion(region);
-        return ResponseEntity.ok(movies);
+        List<MovieResponseDto> dtos = movies.stream()
+                .map(MovieMapper::mapToDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
-    @PostMapping("/add")
-    public ResponseEntity<String> addMovie(@RequestBody MovieDTO movie) {
-        Movie newMovie = movieService.addMovie(movie);
+    @PostMapping("/admin/add/{id}")
+    public ResponseEntity<String> addMovie(@RequestBody MovieDTO movie, @PathVariable("id") Long id) {
+        Movie newMovie = movieService.addMovie(movie, id);
         if (newMovie != null) {
             return ResponseEntity.ok(newMovie.getTitle());
         }
@@ -40,15 +51,45 @@ public class MovieController {
     }
 
 
-    @DeleteMapping("/delete")
-    public ResponseEntity<String> removeMovie(@RequestParam String title) {
-        Movie movie = movieService.getMovieByName(title);
-        if (movie != null) {
-            movieService.deleteMovie(title);
-            return ResponseEntity.ok("Movie deleted successfully.");
+    @DeleteMapping("/admin/delete/{id}")
+    public ResponseEntity<String> removeMovie(@PathVariable("id") Long id) {
+        String msg = movieService.deleteMovie(id);
+        if (msg.equals("Movie deleted successfully")) {
+            return ResponseEntity.ok(msg);
+        } else {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.status(404).body("Movie not found.");
+
+    }
+
+    @GetMapping("/admin/{id}")
+    public ResponseEntity<List<MovieResponse>> getMoviesByTheaterId(@PathVariable Long id) {
+        List<MovieResponse> movies = movieService.getAllMoviesByTheaterId(id);
+        if (movies == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(movies);
+    }
+
+    @GetMapping("/get-movie/{id}")
+    public ResponseEntity<MovieDetailsDto> getMovieById(@PathVariable Long id) {
+        Movie movie = movieService.getMovieById(id);
+        if (movie == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        MovieDetailsDto dto = new MovieDetailsDto();
+        dto.setId(movie.getId());
+        dto.setTitle(movie.getTitle());
+        dto.setGenre(movie.getGenre());
+        dto.setCast(movie.getCast());
+        dto.setDescription(movie.getDescription());
+        dto.setAbout(movie.getAbout());
+        dto.setPoster(movie.getPoster());
+        dto.setDuration(movie.getDuration());
+        dto.setLanguage(movie.getLanguage());
+        dto.setFormat(movie.getFormat());
+        return ResponseEntity.ok(dto);
     }
 
 }
-

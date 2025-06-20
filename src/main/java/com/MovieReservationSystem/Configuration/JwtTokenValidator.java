@@ -1,6 +1,7 @@
 package com.MovieReservationSystem.Configuration;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
@@ -28,7 +29,6 @@ public class JwtTokenValidator extends OncePerRequestFilter {
 
         if (authHeader != null) {
             String token = authHeader.substring(7);
-            System.out.println(token);
             try {
                 SecretKey key = Keys.hmacShaKeyFor(JWTConstant.SECRET_KEY.getBytes());
                 Claims claims = Jwts.parserBuilder()
@@ -44,8 +44,14 @@ public class JwtTokenValidator extends OncePerRequestFilter {
                 Authentication authentication = new UsernamePasswordAuthenticationToken(email, null, auth);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
+            } catch (ExpiredJwtException ex) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Token expired");
+                return;
             } catch (Exception e) {
-                throw new BadCredentialsException("Invalid JWT token", e);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Invalid token");
+                return;
             }
         }
 

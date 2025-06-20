@@ -1,6 +1,7 @@
 package com.MovieReservationSystem.Controller;
 
 import com.MovieReservationSystem.Configuration.JwtProvider;
+import com.MovieReservationSystem.DTO.UserDTO;
 import com.MovieReservationSystem.Model.Role;
 import com.MovieReservationSystem.Model.User;
 import com.MovieReservationSystem.Repository.UserRepository;
@@ -8,6 +9,7 @@ import com.MovieReservationSystem.Request.*;
 import com.MovieReservationSystem.Response.AuthResponse;
 import com.MovieReservationSystem.Service.CustomUserDetailService;
 import com.MovieReservationSystem.Service.OTPService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,16 +48,13 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<String> initiateSignup(@Valid @RequestBody AuthRequest authRequest) throws Exception {
-        if (userRepository.findByEmail(authRequest.getEmail()) != null) {
+        User Tuser = userRepository.findByEmail(authRequest.getEmail());
+        if (Tuser.getEmail() != null && Tuser.getOtp() == null) {
             throw new Exception("Email Already Exists");
         }
 
         if (!Objects.equals(authRequest.getPassword(), authRequest.getConfirmPassword())) {
             throw new Exception("Passwords do not match. Please try again.");
-        }
-
-        if (!isValidRole(authRequest.getRole())) {
-            throw new Exception("Invalid role provided. Please choose a valid role.");
         }
 
         String otp = otpService.generateOtp(6);
@@ -84,18 +83,18 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found. Please sign up again.");
         }
 
-        String message = otpService.verifyOtp(user.getEmail(), request.getOTP());
+        String message = otpService.verifyOtp(user.getEmail(), request.getOtp());
 
         if ("OTP has expired".equals(message) || ("Invalid OTP".equals(message) && LocalDateTime.now().isAfter(user.getOtpExpirationTime()))) {
             userRepository.delete(user);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid OTP. Please sign up again.");
         }
 
-       return new ResponseEntity<>("OTP Verified", HttpStatus.CREATED);
+        return new ResponseEntity<>("OTP Verified", HttpStatus.CREATED);
     }
 
     @PostMapping("/resend-signup-otp")
-    public ResponseEntity<String> resendSignupOtp(@RequestBody VerifyOtpRequest request,@RequestHeader("email") String email) {
+    public ResponseEntity<String> resendSignupOtp(@RequestBody VerifyOtpRequest request, @RequestHeader("email") String email) {
         User user = userRepository.findByEmail(email);
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found. Please sign up again.");
@@ -111,7 +110,7 @@ public class AuthController {
         String msg = String.format("Your new OTP is %s. It's valid for 5 minutes.", newOtp);
         otpService.sendOTPToEmail(email, "Resend OTP", msg);
 
-        String message = otpService.verifyOtp(user.getEmail(),request.getOTP());
+        String message = otpService.verifyOtp(user.getEmail(), request.getOtp());
         if ("OTP has expired".equals(message) || ("Invalid OTP".equals(message) && LocalDateTime.now().isAfter(user.getOtpExpirationTime()))) {
             userRepository.delete(user);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid OTP. Please sign up again.");
@@ -122,6 +121,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> userLogin(@RequestBody LoginRequest request) throws Exception {
+        System.out.println("email :" + request.getEmail() + " password:" + request.getPassword());
         Authentication authentication = authenticateUser(request.getEmail(), request.getPassword());
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         String role = authorities.isEmpty() ? null : authorities.iterator().next().getAuthority();
@@ -131,8 +131,16 @@ public class AuthController {
         AuthResponse authResponse = new AuthResponse();
         authResponse.setToken(token);
         authResponse.setMessage("Successfully logged in");
-        authResponse.setUser(user);
-
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setRole(user.getRole());
+        dto.setOtp(user.getOtp());
+        dto.setImage(user.getImage());
+        dto.setOtpExpirationTime(user.getOtpExpirationTime());
+        authResponse.setUserdto(dto);
         return new ResponseEntity<>(authResponse, HttpStatus.OK);
     }
 
@@ -168,7 +176,7 @@ public class AuthController {
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request, @RequestHeader("email") String email) {
         try {
-            otpService.verifyOtp(email, request.getOTP());
+            otpService.verifyOtp(email, request.getOtp());
             return ResponseEntity.ok(Collections.singletonMap("redirectUrl", "/auth/reset-password"));
         } catch (RuntimeException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)

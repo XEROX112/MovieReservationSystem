@@ -1,0 +1,33 @@
+services:
+  mysql-db:
+    image: mysql:8.4
+    container_name: mysql-db
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 8997
+      MYSQL_DATABASE: moviesystem
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - backend
+
+  movie-app:
+    build: .
+    container_name: movie-app
+    depends_on:
+      - mysql-db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/moviesystem
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 8997
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+
+volumes:
+  dbdata:
+
+networks:
+  backend:

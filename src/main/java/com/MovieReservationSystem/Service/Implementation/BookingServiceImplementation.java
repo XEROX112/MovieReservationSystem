@@ -7,33 +7,40 @@ import com.MovieReservationSystem.Repository.ShowRepository;
 import com.MovieReservationSystem.Repository.UserRepository;
 import com.MovieReservationSystem.Request.BookingRequest;
 import com.MovieReservationSystem.Service.BookingService;
+import com.MovieReservationSystem.Service.ShowService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.chrono.ChronoLocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class BookingServiceImplementation implements BookingService {
+
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final ShowRepository showRepository;
     private final SeatRepository seatRepository;
-    public BookingServiceImplementation(BookingRepository bookingRepository, UserRepository userRepository, ShowRepository showRepository, SeatRepository seatRepository) {
+    private final ShowService showService;
+
+    public BookingServiceImplementation(BookingRepository bookingRepository, UserRepository userRepository,
+                                        ShowRepository showRepository, SeatRepository seatRepository,
+                                        ShowService showService) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.showRepository = showRepository;
         this.seatRepository = seatRepository;
+        this.showService = showService;
     }
 
     @Override
+    @Transactional
     public Bookings bookTickets(BookingRequest request) {
         Optional<Show> showOpt = showRepository.findById(request.getShowId());
-
         if (showOpt.isEmpty()) {
-             throw  new  RuntimeException("Show not found");
+            throw new RuntimeException("Show not found");
         }
 
         Optional<User> userOpt = userRepository.findById(request.getUserId());
@@ -43,124 +50,144 @@ public class BookingServiceImplementation implements BookingService {
 
         User user = userOpt.get();
         Show show = showOpt.get();
-        Boolean isSeatAvailable = isSeatAvailable(show.getScreen(), request.getRequestedSeats());
 
+        // Handle seat lookup from frontend
+        List<Seats> actualSeats = resolveSeats(request);
+
+        // Check seat availability
+        Boolean isSeatAvailable = isSeatAvailable(show.getScreen(), actualSeats);
         if (!isSeatAvailable) {
-            throw new  RuntimeException("Please select other Seats");
+            throw new RuntimeException("Selected seats are no longer available");
         }
-        Double totalBookingPrice=getPriceAndAssignSeats(show.getScreen(),request.getRequestedSeats());
+
+        // Calculate price and mark seats as booked
+        Double totalBookingPrice = getPriceAndAssignSeats(show.getScreen(), actualSeats);
 
         Bookings bookings = new Bookings();
         bookings.setShow(show);
         bookings.setUser(user);
-        bookings.setSeats(request.getRequestedSeats());
+        bookings.setSeats(actualSeats);
         bookings.setTotalAmount(totalBookingPrice);
+        bookings.setDateTime(LocalDateTime.now());
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime customDateTime = now.withHour(18).withMinute(30).withSecond(0).withNano(0);
+        // Save booking
+        Bookings savedBooking = bookingRepository.save(bookings);
 
-        bookings.setDateTime(customDateTime);
-
-        user.getBookings().add(bookings);
+        // Update user's bookings
+        user.getBookings().add(savedBooking);
         userRepository.save(user);
 
-        show.getBookings().add(bookings);
+        // Update show's bookings
+        show.getBookings().add(savedBooking);
         showRepository.save(show);
-        return bookingRepository.save(bookings);
+
+        return savedBooking;
     }
 
-    @Transactional
-    public Double getPriceAndAssignSeats(Screen screen, List<Seats> requestedSeats) {
-        double totalPrice = 0.0;
+    // Method to resolve seats from frontend request
+    private List<Seats> resolveSeats(BookingRequest request) {
+        if (request.getRequestedSeats() != null && !request.getRequestedSeats().isEmpty()) {
+            return request.getRequestedSeats().stream()
+                    .map(seat -> seatRepository.findById(seat.getId())
+                            .orElseThrow(() -> new RuntimeException("Seat not found with ID: " + seat.getId())))
+                    .collect(Collectors.toList());
+        } else if (request.getRequestedSeats() != null && !request.getRequestedSeats().isEmpty()) {
+            Optional<Show> showOpt = showRepository.findById(request.getShowId());
+            if (showOpt.isEmpty()) {
+                throw new RuntimeException("Show not found");
+            }
 
-        // Fetch the latest seats from the database using their IDs
-        List<Long> seatIds = requestedSeats.stream()
-                .map(Seats::getId)  // Assuming getId() fetches the seat ID
-                .toList();
-        List<Seats> seatsFromDB = seatRepository.findAllById(seatIds);
+            Screen screen = showOpt.get().getScreen();
 
-        for (Seats seat : seatsFromDB) {
-            double seatPrice = screen.getSeatCategories().stream()
-                    .filter(category -> category.getSeatRows().stream()
-                            .anyMatch(row -> row.getSeats().contains(seat)))
-                    .map(SeatCategory::getPrice)
-                    .findFirst()
-                    .orElse(0);
+            return request.getRequestedSeats().stream()
+                    .map(seatNumber -> seatRepository.findBySeatRow_SeatCategory_Screen_AndSeatNumber(screen, String.valueOf(seatNumber))
 
+
+                            .orElseThrow(() -> new RuntimeException("Seat not found: " + seatNumber)))
+                    .collect(Collectors.toList());
+
+        } else {
+            throw new RuntimeException("No seat information provided in booking request");
+        }
+    }
+
+
+    // Check if all selected seats are available
+    private Boolean isSeatAvailable(Screen screen, List<Seats> seats) {
+        for (Seats seat : seats) {
+            if (!seat.getIsAvailable()) {
+                return false;
+            }
+            // Additional check: ensure seat belongs to the correct screen
+            // Fixed: Access the screen through the relationship hierarchy
+            if (!seat.getSeatRow().getSeatCategory().getScreen().getId().equals(screen.getId())) {
+                throw new RuntimeException("Seat does not belong to the specified screen");
+            }
+        }
+        return true;
+    }
+
+    // Calculate total price and mark seats as booked
+    public Double getPriceAndAssignSeats(Screen screen, List<Seats> seats) {
+        Double totalPrice = 0.0;
+
+        for (Seats seat : seats) {
+            // Get price from seat category instead of seat directly
+            // Since Seats model doesn't have price field, get it from SeatCategory
+            Double seatPrice = (double) seat.getSeatRow().getSeatCategory().getPrice();
             totalPrice += seatPrice;
 
             // Mark seat as unavailable
             seat.setIsAvailable(false);
+            seatRepository.save(seat);
         }
-
-        // Update in DB
-        seatRepository.saveAll(seatsFromDB);
 
         return totalPrice;
     }
 
-
-
-    private Boolean isSeatAvailable(Screen screen, List<Seats> requestedSeats) {
-        for (Seats seat : requestedSeats) {
-            // Check if the seat exists in the screen and is available
-            boolean seatExistsAndAvailable = screen.getSeatCategories().stream()
-                    .flatMap(category -> category.getSeatRows().stream())
-                    .flatMap(row -> row.getSeats().stream())
-                    .anyMatch(s -> s.getId().equals(seat.getId()) && s.getIsAvailable());
-
-            // If any seat is not available, return false
-            if (!seatExistsAndAvailable) {
-                return false;
-            }
+    @Override
+    public List<Bookings> getBookingsByUser(Long userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("User not found");
         }
-        return true; // All requested seats are available
+        return bookingRepository.findByUser(userOpt.get());
     }
 
+    @Override
+    public Optional<Bookings> getBookingById(Long bookingId) {
+        return bookingRepository.findById(bookingId);
+    }
 
     @Override
     @Transactional
-    public boolean cancelTickets(BookingRequest request) {
-        // Fetch the show details
-        Show show = showRepository.findById(request.getShowId())
-                .orElseThrow(() -> new IllegalArgumentException("Show not found"));
-
-        // Check if the current time is after the show start time
-        if (LocalDateTime.now().isAfter(ChronoLocalDateTime.from(show.getShowTime()))) {
-            throw new IllegalStateException("Cannot cancel booking as the show has already started.");
+    public void cancelBooking(Long bookingId) {
+        Optional<Bookings> bookingOpt = bookingRepository.findById(bookingId);
+        if (bookingOpt.isEmpty()) {
+            throw new RuntimeException("Booking not found");
         }
 
-        // Fetch the booking using userId and showId
-        Bookings booking = bookingRepository.findByUserIdAndShowId(request.getUserId(), request.getShowId())
-                .orElseThrow(() -> new IllegalArgumentException("No booking found for this user and show."));
+        Bookings booking = bookingOpt.get();
 
-        // Retrieve seats from the booking
-        List<Seats> bookedSeats = booking.getSeats();
+        // Check if booking can be cancelled (e.g., show hasn't started)
 
-        if (bookedSeats.isEmpty()) {
-            throw new IllegalArgumentException("No seats found for cancellation.");
-        }
 
-        // Mark seats as available again
-        for (Seats seat : bookedSeats) {
+        // Release the seats
+        for (Seats seat : booking.getSeats()) {
             seat.setIsAvailable(true);
+            seatRepository.save(seat);
         }
 
-        // Save updated seats
-        seatRepository.saveAll(bookedSeats);
+        // Remove booking from user and show
+        booking.getUser().getBookings().remove(booking);
+        booking.getShow().getBookings().remove(booking);
 
-        // Remove the booking
+        // Delete the booking
         bookingRepository.delete(booking);
-
-        System.out.println("Booking canceled successfully.");
-        return true;
     }
 
-
-
     @Override
-    public List<Bookings> getBookingsByUserId(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
-        return bookingRepository.findByUser(user);
+    public List<Bookings> getAllBookings() {
+        return bookingRepository.findAll();
     }
 }

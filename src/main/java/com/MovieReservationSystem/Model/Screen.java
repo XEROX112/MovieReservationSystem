@@ -1,7 +1,9 @@
 package com.MovieReservationSystem.Model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Screen {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,11 +25,9 @@ public class Screen {
 
     @ManyToOne
     @JoinColumn(name = "theater_id", nullable = false)
-    @JsonBackReference
     private Theatre theater;
 
     @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
     private List<SeatCategory> seatCategories;
 
     @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -2,6 +2,7 @@ package com.MovieReservationSystem.Service;
 
 import com.MovieReservationSystem.DTO.AddTheatreRequest;
 import com.MovieReservationSystem.Model.Theatre;
+import com.MovieReservationSystem.Response.TheaterMovieResponse;
 
 import java.util.List;
 
@@ -10,7 +11,7 @@ public interface TheaterService {
 
     List<Theatre> getAllTheaters();
 
-    Theatre getTheaterById(Long theaterId);
+    public List<Theatre> getTheaterByUserId(Long userId);
 
     boolean deleteTheatre(Long id);
 
@@ -24,4 +25,5 @@ public interface TheaterService {
 
     public List<Theatre> getTheatresByMovieAndRegion(String movieTitle, String region);
 
+    List<TheaterMovieResponse> getResponseByUser(Long userId);
 }

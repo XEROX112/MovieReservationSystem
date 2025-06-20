@@ -1,5 +1,8 @@
 package com.MovieReservationSystem.Model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum Certification {
     U("U"),
     U_A("U/A"),
@@ -12,8 +15,18 @@ public enum Certification {
         this.displayName = displayName;
     }
 
-    @Override
-    public String toString() {
+    @JsonValue
+    public String getDisplayName() {
         return displayName;
+    }
+
+    @JsonCreator
+    public static Certification fromValue(String value) {
+        for (Certification c : Certification.values()) {
+            if (c.displayName.equalsIgnoreCase(value)) {
+                return c;
+            }
+        }
+        throw new IllegalArgumentException("Unknown certification: " + value);
     }
 }

@@ -1,6 +1,7 @@
 package com.MovieReservationSystem.Repository;
 
 import com.MovieReservationSystem.Model.Theatre;
+import com.MovieReservationSystem.Model.User;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,4 +24,12 @@ public interface TheatreRepository extends JpaRepository<Theatre, Long> {
                                                @Param("region") String region);
 
     Optional<Theatre> findByTheaterNameAndAddressAndRegion(String theaterName, String address, String region);
+
+    @Query("SELECT t FROM Theatre t WHERE TRIM(LOWER(t.region)) = TRIM(LOWER(:region))")
+    List<Theatre> findByRegion(@Param("region") String region);
+
+
+    List<Theatre> findByUser(User user);
+
+    List<Theatre> findByUser_Id(Long userId);
 }

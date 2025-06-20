@@ -1,5 +1,6 @@
 package com.MovieReservationSystem.Response;
 
+import com.MovieReservationSystem.DTO.UserDTO;
 import com.MovieReservationSystem.Model.Role;
 import com.MovieReservationSystem.Model.User;
 import lombok.AllArgsConstructor;
@@ -10,9 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthResponse {
-    private  String token;
+    private String token;
     private String message;
-    private User user;
-
+    private UserDTO userdto;
 
 }

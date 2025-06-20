@@ -18,16 +18,11 @@ import java.util.stream.Collectors;
 public class ScreenServiceImplementation implements ScreenService {
     private final TheatreRepository theatreRepository;
     private final ScreenRepository screenRepository;
-    private final SeatCategoryRepository seatCategoryRepository;
-    private final SeatRepository seatRepository;
-    private final SeatRowRepository seatRowRepository;
 
-    public ScreenServiceImplementation(TheatreRepository theatreRepository, ScreenRepository screenRepository, SeatCategoryRepository seatCategoryRepository, SeatRepository seatRepository, SeatRowRepository seatRowRepository) {
+
+    public ScreenServiceImplementation(TheatreRepository theatreRepository, ScreenRepository screenRepository) {
         this.theatreRepository = theatreRepository;
         this.screenRepository = screenRepository;
-        this.seatCategoryRepository = seatCategoryRepository;
-        this.seatRepository = seatRepository;
-        this.seatRowRepository = seatRowRepository;
     }
 
     @Override

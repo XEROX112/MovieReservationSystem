@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 public class VerifyOtpRequest {
 
     @NotBlank
-    private String OTP;
+    private String otp;
 }

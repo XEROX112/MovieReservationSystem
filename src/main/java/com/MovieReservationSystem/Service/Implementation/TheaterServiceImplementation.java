@@ -2,7 +2,10 @@ package com.MovieReservationSystem.Service.Implementation;
 
 import com.MovieReservationSystem.DTO.AddTheatreRequest;
 import com.MovieReservationSystem.Model.Theatre;
+import com.MovieReservationSystem.Model.User;
 import com.MovieReservationSystem.Repository.TheatreRepository;
+import com.MovieReservationSystem.Repository.UserRepository;
+import com.MovieReservationSystem.Response.TheaterMovieResponse;
 import com.MovieReservationSystem.Service.ScreenService;
 import com.MovieReservationSystem.Service.TheaterService;
 import org.springframework.http.HttpStatus;
@@ -10,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,10 +23,12 @@ import java.util.Optional;
 public class TheaterServiceImplementation implements TheaterService {
     private final TheatreRepository theatreRepository;
     private final ScreenService screenService;
+    private final UserRepository userRepository;
 
-    public TheaterServiceImplementation(TheatreRepository theatreRepository, ScreenService screenService) {
+    public TheaterServiceImplementation(TheatreRepository theatreRepository, ScreenService screenService, UserRepository userRepository) {
         this.theatreRepository = theatreRepository;
         this.screenService = screenService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -33,10 +39,12 @@ public class TheaterServiceImplementation implements TheaterService {
         }
 
         // ✅ Map DTO to Entity
+        User user = userRepository.findById(addTheatre.getUserId()).get();
         Theatre newTheatre = new Theatre();
         newTheatre.setTheaterName(addTheatre.getTheaterName());
         newTheatre.setRegion(addTheatre.getRegion());
         newTheatre.setAddress(addTheatre.getAddress());
+        newTheatre.setUser(user);
         theatreRepository.save(newTheatre);
         long id = newTheatre.getId();
         screenService.addScreenInTheatre(id, addTheatre.getScreens());
@@ -50,9 +58,12 @@ public class TheaterServiceImplementation implements TheaterService {
     }
 
     @Override
-    public Theatre getTheaterById(Long theaterId) {
-        return theatreRepository.findById(theaterId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Theatre not found"));
+    public List<Theatre> getTheaterByUserId(Long userId) {
+        List<Theatre> theatres = theatreRepository.findByUser_Id(userId);
+        if (theatres.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No theatres found for this user");
+        }
+        return theatres;
     }
 
     @Override
@@ -100,5 +111,23 @@ public class TheaterServiceImplementation implements TheaterService {
     @Override
     public List<Theatre> getTheatresByMovieAndRegion(String movieTitle, String region) {
         return theatreRepository.findTheatresByMovieAndRegion(movieTitle, region);
+    }
+
+    @Override
+    public List<TheaterMovieResponse> getResponseByUser(Long userId) {
+        List<Theatre> theatres = theatreRepository.findByUser_Id(userId);
+        if (theatres.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No theatres found for this user");
+        }
+        List<TheaterMovieResponse> responses = new ArrayList<>();
+        for (Theatre theatre : theatres) {
+            TheaterMovieResponse response = new TheaterMovieResponse();
+            response.setTheaterId(theatre.getId());
+            response.setTheaterName(theatre.getTheaterName());
+            response.setTheaterLocation(theatre.getAddress());
+            response.setTheaterRegion(theatre.getRegion());
+            responses.add(response);
+        }
+        return responses;
     }
 }

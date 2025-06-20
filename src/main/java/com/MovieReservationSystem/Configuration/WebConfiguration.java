@@ -23,7 +23,7 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class WebConfiguration {
 
- private  final UserDetailsService userDetailsService;
+    private final UserDetailsService userDetailsService;
 
     public WebConfiguration(CustomUserDetailService userDetailsService) {
         this.userDetailsService = userDetailsService;
@@ -32,20 +32,22 @@ public class WebConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorizeRequests -> authorizeRequests
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/admin/**").hasAnyRole( "ADMIN")
-                        .requestMatchers("/profile/**","/theater/**").authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**").permitAll()                            // Public auth routes// Public movie & show listings
+                        .requestMatchers("/theater/admin/**", "/movies/admin/**", "/shows/admin/**").hasRole("ADMIN")             // Admin-only theater mgmt
+                        .requestMatchers("/theater/**", "/movies/**", "/shows/**").permitAll()                        // Public access to other theater info
+                        .requestMatchers("/profile/**", "/api/users/**").authenticated()   // Requires login
                         .anyRequest().permitAll()
                 )
-                .addFilterBefore( new JwtTokenValidator(), BasicAuthenticationFilter.class)
+
+                .addFilterBefore(new JwtTokenValidator(), BasicAuthenticationFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsconfigurationSource()));
         return http.build();
     }
 
-
-    private CorsConfigurationSource corsconfigurationSource() {
+    @Bean
+    public CorsConfigurationSource corsconfigurationSource() {
         return new CorsConfigurationSource() {
             @Override
             public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {

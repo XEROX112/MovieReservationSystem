@@ -1,9 +1,11 @@
 package com.MovieReservationSystem.Model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,16 +13,19 @@ import java.time.LocalTime;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "shows")
+@Builder
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Show {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalTime showTime;
+    private String showTime;
 
     private LocalDate showDate;
 
@@ -38,4 +43,10 @@ public class Show {
     @ManyToOne
     @JoinColumn(name = "screen_id")
     private Screen screen;
+
+    private boolean isAvailable = true;
+
+    private String language;
+
+    private String format;
 }

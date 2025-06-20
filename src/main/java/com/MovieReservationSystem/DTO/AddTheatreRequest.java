@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 
 public class AddTheatreRequest {
+    private Long userId;
     @NotBlank(message = "Theater name cannot be empty")
     private String theaterName;
 

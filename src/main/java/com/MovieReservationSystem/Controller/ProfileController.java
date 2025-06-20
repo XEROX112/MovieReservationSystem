@@ -1,15 +1,15 @@
 package com.MovieReservationSystem.Controller;
 
 import com.MovieReservationSystem.DTO.APIResponse;
-import com.MovieReservationSystem.DTO.UpdatedUser;
-import com.MovieReservationSystem.Model.Bookings;
 import com.MovieReservationSystem.Model.User;
 import com.MovieReservationSystem.Request.ChangePasswordRequest;
 import com.MovieReservationSystem.Request.ForgetPasswordRequest;
+import com.MovieReservationSystem.Request.UserRequest;
 import com.MovieReservationSystem.Request.VerifyOtpRequest;
+import com.MovieReservationSystem.Response.UserBookingResponse;
+import com.MovieReservationSystem.Response.UserResponse;
 import com.MovieReservationSystem.Service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,27 +22,32 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class ProfileController {
     private final UserService userService;
-    @Autowired
+
     public ProfileController(UserService userService) {
         this.userService = userService;
     }
 
-    @GetMapping("/user")
-    public ResponseEntity<User> getUserByEmail(@RequestHeader("email") String email) {
-        return ResponseEntity.ok(userService.getUserByEmail(email));
+    @PutMapping("/add/{id}")
+    public ResponseEntity<String> addUser(@Valid @RequestBody UserRequest request, @PathVariable Long id) {
+        User response = userService.addUser(request, id);
+        return ResponseEntity.ok("User added successfully: " + response.getEmail());
     }
 
-
-    // Update user details
-    @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody UpdatedUser updatedUser) throws Exception {
-        return ResponseEntity.ok(userService.updateUser(id, updatedUser));
+    @GetMapping("/{id}/user")
+    public ResponseEntity<UserResponse> getUserByEmail(@RequestHeader("X-User-Email") String email, @PathVariable Long id) {
+        UserResponse response = userService.getUserByEmail(email, id);
+        return ResponseEntity.ok(response);
     }
+
 
     // Get user bookings
     @GetMapping("/{id}/bookings")
-    public ResponseEntity<List<Bookings>> getUserBookings(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.getBookings(id));
+    public ResponseEntity<List<UserBookingResponse>> getUserBookings(@PathVariable Long id) {
+        List<UserBookingResponse> userBookings = userService.getBookings(id);
+        if (userBookings.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        return ResponseEntity.ok(userBookings);
     }
 
     // Delete user
@@ -62,8 +67,8 @@ public class ProfileController {
     }
 
     @PostMapping("/{id}/verify-email-change-verify")
-    public ResponseEntity<String> verifyEmailChange(@PathVariable Long id, @RequestBody VerifyOtpRequest request, @RequestHeader("email") String newEmail) {
-        boolean isVerified = userService.verifyOtpAndChangeEmail(id, request.getOTP(), newEmail);
+    public ResponseEntity<String> verifyEmailChange(@PathVariable Long id, @RequestBody VerifyOtpRequest request, @RequestHeader("X-User-Email") String newEmail) {
+        boolean isVerified = userService.verifyOtpAndChangeEmail(id, request.getOtp(), newEmail);
         return isVerified
                 ? ResponseEntity.ok("Email verified and updated.")
                 : ResponseEntity.badRequest().body("Invalid or expired OTP.");
@@ -82,9 +87,9 @@ public class ProfileController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file,@RequestHeader("Authorization") String token) {
+    public ResponseEntity<String> uploadImage(@RequestParam("file") MultipartFile file, @RequestHeader("Authorization") String token) {
         try {
-            String imageUrl =userService.uploadImage(file, token);
+            String imageUrl = userService.uploadImage(file, token);
             return ResponseEntity.ok("Image uploaded successfully: " + imageUrl);
         } catch (IOException e) {
             return ResponseEntity.status(500).body("Image upload failed: " + e.getMessage());
@@ -92,4 +97,12 @@ public class ProfileController {
             throw new RuntimeException(e);
         }
     }
+
+    @GetMapping("/{userId}/profile-image")
+    public ResponseEntity<String> getUserProfileImage(@PathVariable Long userId) {
+        String img = userService.getProfileImage(userId);
+        if (img != null) return ResponseEntity.ok(img);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
 }

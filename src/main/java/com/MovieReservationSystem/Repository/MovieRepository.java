@@ -10,9 +10,12 @@ import java.util.List;
 public interface MovieRepository extends JpaRepository<Movie, Long> {
 
     Movie findByTitle(String title);
-    @Query("SELECT DISTINCT m FROM Movie m JOIN Show s ON m.id = s.movie.id " +
-            "WHERE s.theater.region = :region")
+
+    @Query("SELECT DISTINCT m FROM Movie m JOIN m.theatre t WHERE LOWER(TRIM(t.region)) = LOWER(TRIM(:region))")
     List<Movie> findMoviesByRegion(@Param("region") String region);
 
+
     boolean existsByTitle(String title);
+
+    List<Movie> findMoviesByTheatre_Id(Long theaterId);
 }

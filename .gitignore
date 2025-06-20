@@ -31,3 +31,13 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Ignore JWTConstant.java
+src/main/java/com/MovieReservationSystem/Configuration/JWTConstant.java
+
+#Ignore CloudinaryConfig.java
+ src/main/java/com/MovieReservationSystem/Configuration/CloudinaryConfig.java
+# Ignore application.properties
+src/main/resources/application.properties
+
+
