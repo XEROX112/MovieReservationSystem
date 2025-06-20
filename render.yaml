@@ -1,8 +1,9 @@
 services:
   - type: web
     name: movie-reservation-backend
-    env: static
-    buildCommand: mvn clean package
-    startCommand: java -jar target/MovieReservationSystem-0.0.1-SNAPSHOT.jar
+    env: docker
+    dockerfilePath: ./Dockerfile
     branch: main
+    autoDeploy: true
+
 
